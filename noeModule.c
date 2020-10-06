@@ -34,10 +34,14 @@ static ssize_t device_write(struct file *, const char *, size_t, loff_t *);
 
 /*Global variables are declared as static, so are global within the file. */
 static int Major;
+static short pos = 0;
+static int MajorSelected = 3;
 /* Major number assigned to our device driver */
 static int Device_Open = 0;     
 /* Is device open? Used to prevent multiple access to device */
 static char msg[BUF_LEN]; 
+
+static char mensaje[BUF_LEN]; 
 /* The msg the device will give when asked */
 static char *msg_Ptr;
 
@@ -50,7 +54,7 @@ static struct file_operations fops = {
 
 /* * This function is called when the module is loaded */
 int init_module(void){        
-	Major = register_chrdev(3, DEVICE_NAME, &fops);
+	Major = register_chrdev(MajorSelected, DEVICE_NAME, &fops);
 	
 	if (Major < 0) {
 		printk(KERN_ALERT "Registering char device failed with %d\n", Major);
@@ -66,7 +70,7 @@ int init_module(void){
 /*This function is called when the module is unloaded */
 void cleanup_module(void){        
 		/*Unregister the device */        
-		unregister_chrdev(Major, DEVICE_NAME);
+		unregister_chrdev(MajorSelected, DEVICE_NAME);
              
         printk(KERN_INFO "UNGS : Driver Noelia No registrado\n");
 }
@@ -75,13 +79,13 @@ void cleanup_module(void){
 /* Called when a process tries to open the device file, like "cat /dev/mycharfile" */
 
 static int device_open(struct inode *inode, struct file *file){ 
-       /*static int counter = 0;*/ 
+       //static int counter = 0;
        
         if (Device_Open) 
                  return -EBUSY; 
                  
         Device_Open++; 
- 		/*sprintf(msg, "I already told you %d times Hello world!\n", counter++);*/
+ 		//sprintf(msg);
         msg_Ptr = msg;
         try_module_get(THIS_MODULE);
         
@@ -103,32 +107,20 @@ static int device_release(struct inode *inode,
 /* Called when a process, which already opened the dev file, attempts to read from it. */
 static ssize_t device_read(struct file *filp,   /* see include/linux/fs.h   */                           							char *buff,        /* buffer to fill with data */                           							size_t length,       /* length of the buffer     */                           							loff_t *offset) {   
 	
-  		int maxbytes;   /* maximum bytes that can be read from ppos to buffer*/
-        int bytes_to_read;      /* gives the number of bytes to read*/
-        int bytes_read;         /* number of bytes actually read*/
-        maxbytes = BUF_LEN - *offset;
-        if (maxbytes > length)
-                bytes_to_read = length;
-        else
-                bytes_to_read = maxbytes;
-        if (bytes_to_read == 0)
-                printk(KERN_INFO "noeDevice : Reached the end of the device\n");
-
-        bytes_read = bytes_to_read - copy_to_user(buff, msg + *offset, bytes_to_read);
-        printk(KERN_INFO "noeDevice : device has been read %d\n", bytes_read);
-
-        *offset += bytes_read;
-        printk(KERN_INFO "noeDevice : device has been read\n");
-
-        return bytes_read;       
-  		
+	short count = 0;
+  		while(length && mensaje[pos]!=0){
+  		put_user(mensaje[pos],buff++);
+  		count++;
+  		length--;
+  		pos++;
+  		}    
+  	return count;	
 }
   
   /* Called when a process writes to dev file: echo "hi" > /dev/hello  */
 static ssize_t device_write(struct file *fp, 
 							const char *buff, 
-							size_t length, loff_t *ppos){     
-		char destino[BUF_LEN];   
+							size_t length, loff_t *ppos){       
   	 	int maxbytes;           /* maximum bytes that can be read from ppos to BUFFER_SIZE*/
   	 	
         int bytes_to_write;     /* gives the number of bytes to write*/
@@ -138,10 +130,12 @@ static ssize_t device_write(struct file *fp,
                 bytes_to_write = length;
         else
                 bytes_to_write = maxbytes;
-                
-        encryptWithCesar(buff,destino, bytes_to_write);
+                      
+        encryptWithCesar(buff,mensaje, bytes_to_write);
+        
+        printk(KERN_INFO "noedevice : mensaje encriptado %s\n", mensaje);
 
-        bytes_writen = bytes_to_write - copy_from_user(msg + *ppos, destino, bytes_to_write);
+        bytes_writen = bytes_to_write - copy_from_user(msg + *ppos, buff, bytes_to_write);
         printk(KERN_INFO "noedevice : device has been written %d\n", bytes_writen);
         *ppos += bytes_writen;
         printk(KERN_INFO "noedevice : device has been written\n");
@@ -160,26 +154,27 @@ void encryptWithCesar(const char *mensaje,char *destino, int length){
     int posicionOriginal = ord(caracterActual);
     
     if (!isalpha(caracterActual)) {
+    /*Si no es letra no lo modifico*/
       destino[i] = caracterActual;
       i++;
-      continue; // Ir a la siguiente iteración; por eso arriba aumentamos a i
+      continue; 
     }
 
     if (isupper(caracterActual)) {
+    /*Me fijo si es mayuscula o no*/
       destino[i] =
           alfabetoMayusculas[(posicionOriginal - INICIO_ALFABETO_MAYUSCULAS +
-                              Major) %
+                              MajorSelected) %
                              LONGITUD_ALFABETO];
     } else {
 
       destino[i] =
           alfabetoMinusculas[(posicionOriginal - INICIO_ALFABETO_MINUSCULAS +
-                              Major) %
+                              MajorSelected) %
                              LONGITUD_ALFABETO];
     }
     i++;
   }
-
 }
 
 int ord(char c) { return (int)c; }
@@ -188,16 +183,5 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("UNGS");
 MODULE_DESCRIPTION("Un primer driver");
 
-
-/*int init_module(void)
-{ 
-  printk(KERN_INFO "UNGS : Driver registrado\n");
-  return 0;
-}
-void cleanup_module(void)
-{ 
-  printk(KERN_INFO "UNGS : Driver desregistrado\n");
-}
-*/
 
 

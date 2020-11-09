@@ -1,9 +1,10 @@
-# Trabajo Practico Inicial de Sistemas Operativos y Redes II
+# Trabajo Práctico Inicial de Sistemas Operativos y Redes II
 ## Device Drivers - Char Device
 
 #### PASO 1
 
-###### Escribir un archivo Makefile para realizar la compilacion y creacion del device
+ ##### Escribir un archivo Makefile para realizar la compilación y creación del device
+ 
 ```
 obj -m := miModulo .o
 
@@ -15,7 +16,8 @@ clean :
    
  #### PASO 2 
  
- ##### Crear archivo .c con la implementacion de los metodos mencionados a continuación:
+ ##### Crear archivo .c con la implementación de los siguientes métodos:
+ 
 ``` 
 int init_module(void); 
 void cleanup_module(void);
@@ -25,18 +27,35 @@ static ssize_t device_read(struct file *, char *, size_t, loff_t *);
 static ssize_t device_write(struct file *, const char *, size_t, loff_t *);
 ```
  #### PASO 3
- ##### En la carpeta en la que estan alojados los archivos ejecutar los siguientes comandos:
+ 
+ ##### Para compilar el código y registrar el modulo 
+ ##### Posicionarse en la carpeta en la que estan alojados los archivos, ejecutar los siguientes comandos:
+ 
 ```
 make 
 sudo insmod nombrearchivo.ko
 ```
-  #### PASO 4
- ##### Posicionar en /dev crear device:
+
+#### PASO 4 
+  
+##### Buscar el valor del Major asignado en el log del kernel con el siguiente comando:
+  
 ```
- sudo mknod nombredeldevice c numeroqueseledioamajor 0
- sudo chmod 666 nombredeldevice
+dmesg
+
 ```
 
-  #### PASO 5
-  ###### Escribir en el device "echo "mensaje" > /dev/nombredeldevice"
+ #### PASO 5
+  
+ ##### Para registrar el device y darle premisos de lectura y escritura ejecutar los siguientes comandos: 
+ 
+```
+ sudo mknod dev/nombredeldevice c numeroqueseledioamajor 0
+ sudo chmod 666 dev/nombredeldevice
+```
+
+  #### PASO 6
+  
+  ###### Escribir en el device con "echo "mensaje" > /dev/nombredeldevice"
+  
   ###### Lear el device "cat /dev/nombredeldevice"
